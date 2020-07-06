@@ -196,6 +196,7 @@ namespace Hearthstone_Deck_Tracker.BobsBuddy
 				}
 				else
 				{
+					LogLiklihoodResultsAsTable(result);
 					DebugLog("Displaying simulation results");
 					BobsBuddyDisplay.ShowCompletedSimulation(
 						result.winRate,
@@ -265,6 +266,48 @@ namespace Hearthstone_Deck_Tracker.BobsBuddy
 			DebugLog($"Updating entities with attacker={attacker.Card.Name}, defender={defender.Card.Name}");
 			_defendingHero = defender;
 			_attackingHero = attacker;
+		}
+
+		private void LogLiklihoodResultsAsTable(TestOutput result)
+		{
+			double tiePercent = 0;
+			var assumedMaxDamage = 100;
+			double[] damageDealt = new double[assumedMaxDamage];
+			double[] damageReceived = new double[assumedMaxDamage];
+			var y = result.result.Count;
+			double modifyBy = 100.0f / result.result.Count;
+			foreach(var trace in result.result)
+			{
+				if(trace.damage == 0)
+					tiePercent++;
+				else if(trace.damage > 0)
+					damageDealt[trace.damage]++;
+				else
+					damageReceived[trace.damage * -1]++;
+			}
+			tiePercent *= modifyBy;
+			for(int i =0; i < assumedMaxDamage; i++)
+			{
+				damageDealt[i] = damageDealt[i] * modifyBy;
+				damageReceived[i] = damageReceived[i] * modifyBy;
+			}
+
+			DebugLog($"Bob's Buddy Damage Liklihood Log for Gameid {_currentGameId}");
+			DebugLog("Turn    Damage Type    Damage    Liklihood");
+
+			for(int i= assumedMaxDamage - 1; i >= 0; i--)
+			{
+				if(damageReceived[i] > 0)
+					DebugLog($" {_game.GetTurnNumber()}       Taken          {i}        {damageReceived[i]}");
+			}
+			if(tiePercent > 0)
+				DebugLog($" {_game.GetTurnNumber()}       Tied           0        {tiePercent}");
+			for(int i =0; i < assumedMaxDamage; i++)
+			{
+				if(damageDealt[i] > 0)
+					DebugLog($" {_game.GetTurnNumber()}       Dealt          {i}        {damageDealt[i]}");
+			}
+
 		}
 
 		private bool IsUnknownCard(Entity e) => e?.Card.Id == Database.UnknownCardId;
